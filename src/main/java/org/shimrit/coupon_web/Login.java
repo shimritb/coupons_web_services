@@ -68,13 +68,20 @@ public class Login {
 				return Response.status(200).header(HttpHeaders.AUTHORIZATION, token).entity(userResponseData).build();
 			} else {
 				feedback = "Please provide valid credentials";
-			}
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-		} catch (LoginFailedException e) {
-			feedback = e.getMessage();
-		}
-		return Response.status(Response.Status.UNAUTHORIZED).entity(feedback).build();
+				return Response.status(Response.Status.UNAUTHORIZED).entity(feedback).build();
+			}	
+		} catch (Exception e) {
+            if(e instanceof CustomSqlSyntaxException) {
+            	feedback = e.getMessage();
+            }
+            else if(e instanceof LoginFailedException) {
+            	feedback = e.getMessage();
+            }
+            else {
+            	feedback = e.getMessage();
+            }  
+            return Response.status(Response.Status.UNAUTHORIZED).entity(feedback).build();
+        }
 	}
 
 	@POST

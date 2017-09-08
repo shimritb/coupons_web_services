@@ -5,16 +5,19 @@ import java.util.ArrayList;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import client.ClientType;
+import client.CompanyFacade;
 import client.CustomerFacade;
 import dataObjects.Coupon;
 import dataObjects.CouponType;
@@ -31,44 +34,43 @@ public class CustomerResource {
 	@Path("/coupon/purchase")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response purchaseCoupon(Coupon coupon){
+	public Response purchaseCoupon(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Coupon coupon){
 		String feedback = "";	
 		CustomerFacade custFacade = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			custFacade = (CustomerFacade) CouponSystemInst.couponSystem.login("raviv", "8889", ClientType.valueOf("CUSTOMER"));	
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		custFacade = (CustomerFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (custFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
+		
+		System.out.println("debug: coupon end date: " + coupon.getEndDate().toString());
 		
 		// input fields validation
 		if(coupon == null 
 				|| coupon.getId()==0 
-				|| coupon.getTitle()==null 
-				|| coupon.getStartDate()==null 
-				|| coupon.getEndDate()==null 
-				|| coupon.getMessage()==null 
-				|| coupon.getPrice()==0.0 
-				|| coupon.getImage()==null) {
+				|| coupon.getEndDate()==null ){
 	        return Response.serverError().entity("Coupon object fields cant be null").build();
 	    }	
 				
 		try {
 			custFacade.purchaseCoupon(coupon);
 			return Response.status(200).entity("Coupon sucessfully purchased").build();
-		} catch (CustomSqlSyntaxException e) {
+		} catch (Exception e) {
 			feedback=e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CouponAmountIsEmptyException e) {
-			feedback=e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CouponExpiredException e) {
-			feedback=e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CouponWasPurchasedException e) {
-			feedback=e.getMessage();
+			
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CouponAmountIsEmptyException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CouponExpiredException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CouponWasPurchasedException) {
+				feedback = e.getMessage();
+			}
+			else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
 	}
@@ -76,18 +78,17 @@ public class CustomerResource {
 	@GET
 	@Path("/coupon/getAllPurchasedCoupons")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllPurchasedCoupons(){
+	public Response getAllPurchasedCoupons(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken){
 		String feedback = "";
 		CustomerFacade custFacade = null;
 		ArrayList<Coupon> purchasedCouponslist = null;
 		GenericEntity<ArrayList<Coupon>> genericEntity = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
+
 		
-		try {
-			custFacade = (CustomerFacade) CouponSystemInst.couponSystem.login("raviv", "8889", ClientType.valueOf("CUSTOMER"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		custFacade = (CustomerFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (custFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		try {
@@ -97,33 +98,34 @@ public class CustomerResource {
 			}
 			genericEntity = new GenericEntity<ArrayList<Coupon>>(purchasedCouponslist) {};
 			return Response.status(200).entity(genericEntity).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback=e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		}
-		
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback=e.getMessage();
+				return Response.status(500).entity(feedback).build();
+			} else {
+				feedback=e.getMessage();
+				return Response.status(500).entity(feedback).build();
+			}
+		}		
 	}
 	
 	@GET
 	@Path("/coupon/getAllPurchasedCouponsByType")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllPurchasedCouponsByType(@QueryParam("type") @DefaultValue("empty-inputt") String couponType){
+	public Response getAllPurchasedCouponsByType(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, @QueryParam("type") @DefaultValue("empty-input") String couponType){
 		String feedback = "";		
 		CustomerFacade custFacade = null;
 		ArrayList<Coupon> purchasedcouponListByType = null;
 		GenericEntity<ArrayList<Coupon>> genericEntity = null;
 		CouponType enumCouponType = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			custFacade = (CustomerFacade) CouponSystemInst.couponSystem.login("raviv", "8889", ClientType.valueOf("CUSTOMER"));
-			
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		custFacade = (CustomerFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (custFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
-		if (couponType.equals("empty-inputt")) {
+		if (couponType.equals("empty-input")) {
 			return Response.serverError().entity("Type cannot be blank").build();
 		}
 		// turning couponType that we got from client into enum (REMEMBER: enum in our case works with big letters)
@@ -143,28 +145,30 @@ public class CustomerResource {
 			genericEntity = new GenericEntity<ArrayList<Coupon>>(purchasedcouponListByType) {};
 			return Response.status(200).entity(genericEntity).build();
 			
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-			return Response.status(500).entity(feedback).build();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				System.out.println(e.getMessage());
+				return Response.status(500).entity(feedback).build();			
+			} else {
+				System.out.println(e.getMessage());
+				return Response.status(500).entity(feedback).build();
+			}
 		}
 	}
 	
 	@GET
 	@Path("/coupon/getAllPurchasedCouponsByPrice")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllPurchasedCouponsByPrice(@QueryParam("price") @DefaultValue("-1.2")Double price){
+	public Response getAllPurchasedCouponsByPrice(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, @QueryParam("price") @DefaultValue("-1.2")Double price){
 		String feedback = "";		
 		CustomerFacade custFacade = null;
 		ArrayList<Coupon> purchasedcouponListByPrice = null;
 		GenericEntity<ArrayList<Coupon>> genericEntity = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			custFacade = (CustomerFacade) CouponSystemInst.couponSystem.login("raviv", "8889", ClientType.valueOf("CUSTOMER"));
-			
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		custFacade = (CustomerFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (custFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		if (price == -1.2) {
@@ -178,8 +182,12 @@ public class CustomerResource {
 			}
 			genericEntity = new GenericEntity<ArrayList<Coupon>>(purchasedcouponListByPrice) {};
 			return Response.status(200).entity(genericEntity).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
 	}

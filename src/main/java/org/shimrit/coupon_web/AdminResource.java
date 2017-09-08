@@ -5,18 +5,17 @@ import java.util.ArrayList;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import client.AdminFacade;
-import client.ClientType;
-import client.CompanyFacade;
 import dataObjects.Company;
 import dataObjects.Coupon;
 import dataObjects.Customer;
@@ -27,7 +26,6 @@ import exceptions.CustomSqlSyntaxException;
 import exceptions.CustomerIdNotFoundException;
 import exceptions.CustomerNameAlreadyExsitsException;
 import exceptions.CustomerNameNotFound;
-import exceptions.LoginFailedException;
 
 @Path("admin_resource")
 public class AdminResource {
@@ -42,21 +40,18 @@ public class AdminResource {
 	@Path("/company/create")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createCompany(Company company) {
+	public Response createCompany(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Company company) {
 		String feedback = "";
 		AdminFacade adminFacade = null;
-		 
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
-		}
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-	    	// input fields validation
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
+		}	
+		
+	    // input fields validation
 		if(company == null 
-				|| company.getId()==0 
 				|| company.getCompName()==null 
 				|| company.getEmail()==null
 				|| company.getPassword()==null) {
@@ -65,107 +60,108 @@ public class AdminResource {
 		try {
 			adminFacade.createCompany(company);
 			return Response.status(200).entity("Company sucessfully created").build();
-		} catch (CompanyNameAlreadyExistsException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CompanyNameAlreadyExistsException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CustomSqlSyntaxException){
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} 
-
+		}
 	}
 	
 	@POST
 	@Path("/company/remove")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response removeCompany(Company company){
+	public Response removeCompany(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Company company){
 		String feedback = "";
 		AdminFacade adminFacade = null;
-		 
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
-		}
+		FacadeManager facadeManager = FacadeManager.getInstance();
+		
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
+		}	
 		
     	// input fields validation
 		if(company == null 
 				|| company.getId()==0 
-				|| company.getCompName()==null 
-				|| company.getEmail()==null
-				|| company.getPassword()==null)  {
+				|| company.getCompName()==null) {
 	        return Response.serverError().entity("Company object fields cant be null").build();
     }
 		try {
 			adminFacade.removeCompany(company);
 			return Response.status(200).entity("Company sucessfully removed").build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CompanyNameDoesNotExistsException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
+		} catch (Exception e) {
+			if (e instanceof CompanyNameDoesNotExistsException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
 			}
+			return Response.status(500).entity(feedback).build();
+		}
 	}
 	
 	@POST
 	@Path("/company/update")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateCompany(Company company){
+	public Response updateCompany(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Company company){
 		String feedback = "";
 		AdminFacade adminFacade = null;
-
-
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		FacadeManager facadeManager = FacadeManager.getInstance();
+		
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
+
     	// input fields validation
 		if(company == null 
 				|| company.getId()==0 
-				|| company.getCompName()==null 
-				|| company.getEmail()==null
-				|| company.getPassword()==null)  {
+//				|| company.getCompName()==null 
+				|| ( company.getEmail()==null
+				&& company.getPassword()==null))  {
 	        return Response.serverError().entity("Company object fields cant be null").build();
     }
 		try {
 			adminFacade.updateCompany(company);
 			return Response.status(200).entity("Company sucessfully updated").build();
 		
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CompanyNameDoesNotExistsException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CompanyNameDoesNotExistsException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
+			
+			return Response.status(500).entity(feedback).build(); 
 		}
 	}
 	
 	@GET
 	@Path("/company/get")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getCompany(@QueryParam("id")@DefaultValue("-1")Long id){
+	public Response getCompany(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, @QueryParam("id")@DefaultValue("-1")Long id){
 		String feedback="";
 		AdminFacade adminFacade = null;
 		Company company = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
 		if(id == -1) {
-	        return Response.serverError().entity("ID cannot be blank").build();//MAIL TO ITAY
+	        return Response.serverError().entity("ID cannot be blank").build();
 		}
-		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+				
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		try {
@@ -175,29 +171,31 @@ public class AdminResource {
 		        return Response.status(Response.Status.NOT_FOUND).entity("Company not found for ID: " + id).build();
 			}
 		     return Response.status(200).entity(company).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CompanyIdNotFoundException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		}	
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CompanyIdNotFoundException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
+			return Response.status(500).entity(feedback).build();			
+		}
 	}
+	
 	@GET
 	@Path("/company/getAllCompanies")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllCompanies(){
+	public Response getAllCompanies(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken){
 		String feedback="";
 		AdminFacade adminFacade = null;
 		ArrayList<Company> companyList = null;
 		GenericEntity<ArrayList<Company>> genericEntity = null;
-
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		FacadeManager facadeManager = FacadeManager.getInstance();
+		
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		try {			
@@ -207,44 +205,47 @@ public class AdminResource {
 			}
 			genericEntity = new GenericEntity<ArrayList<Company>>(companyList) {};
 			return Response.status(200).entity(genericEntity).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
-
 	}
 	
 	@POST
 	@Path("/customer/create")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response createCustomer(Customer customer){
+	public Response createCustomer(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Customer customer){
 		String feedback = "";
 		AdminFacade adminFacade = null;
-		 
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		FacadeManager facadeManager = FacadeManager.getInstance();
+		
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		if(customer == null
-					|| customer.getId()==0
 					|| customer.getCustName()==null
 					|| customer.getPassword()==null) {
 	        return Response.serverError().entity("Customer object cant be null").build();
 	    }
 		
 		try {
-		adminFacade.createCustomer(customer);
-		return Response.status(200).entity("Customer sucessfully created").build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CustomerNameAlreadyExsitsException e) {
-			feedback = e.getMessage();
+			adminFacade.createCustomer(customer);
+			return Response.status(200).entity("Customer sucessfully created").build();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage();
+			} else if (e instanceof CustomerNameAlreadyExsitsException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
 	}
@@ -253,51 +254,52 @@ public class AdminResource {
 	@Path("/customer/remove")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response removeCustomer(Customer customer){
+	public Response removeCustomer(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Customer customer){
 		String feedback = "";
 		AdminFacade adminFacade = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
+
 		if(customer == null
 				|| customer.getId()==0
 				|| customer.getCustName()==null
-				|| customer.getPassword()==null) {
-        return Response.serverError().entity("Customer object cant be null").build();
-    }
+		){
+			return Response.serverError().entity("Customer object cant be null").build();
+		}
 	
 		try {
 			adminFacade.removeCustomer(customer);
 			return Response.status(200).entity("Customer sucessfully created").build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage(); 
+			} else if (e instanceof CustomerNameNotFound) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
-		} catch (CustomerNameNotFound e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		}	
+		}
 	}
 	
 	@POST
 	@Path("/customer/update")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateCustomer(Customer customer){
+	public Response updateCustomer(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, Customer customer){
 		String feedback = "";
 		AdminFacade adminFacade = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
+		
 		if(customer == null
 				|| customer.getId()==0
 				|| customer.getCustName()==null
@@ -306,13 +308,16 @@ public class AdminResource {
     }
 	
 		try {
-			adminFacade.removeCustomer(customer);
+			adminFacade.updateCustomer(customer);
 			return Response.status(200).entity("Customer sucessfully updated").build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		} catch (CustomerNameNotFound e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage(); 
+			} else if (e instanceof CustomerNameNotFound) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
 	}
@@ -320,22 +325,21 @@ public class AdminResource {
 	@GET
 	@Path("/customer/get")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getCustomer(@QueryParam("id")@DefaultValue("-2")Long id){
+	public Response getCustomer(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken, @QueryParam("id")@DefaultValue("-1")Long id){
 		String feedback="";
 		AdminFacade adminFacade = null;
 		Customer customer = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		if(id == 2) {
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
+		}
+		
+		if(id == -1) {
 	        return Response.serverError().entity("ID cannot be blank").build();
 		}
-		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
-		}
+
 		try {
 			customer = adminFacade.getCustomer(id);
 		
@@ -343,30 +347,30 @@ public class AdminResource {
 		        return Response.status(Response.Status.NOT_FOUND).entity("Customer not found for ID: " + id).build();
 			}
 		     return Response.status(200).entity(customer).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage(); 
+			} else if (e instanceof CustomerIdNotFoundException) {
+				feedback = e.getMessage();
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
-		} catch (CustomerIdNotFoundException e) {
-			feedback = e.getMessage();
-			return Response.status(500).entity(feedback).build();
-		}
-		
+		}	
 	}
 	@GET
 	@Path("/customer/getAllCustomer")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllCustomer(){
+	public Response getAllCustomer(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken){
 		String feedback="";
 		AdminFacade adminFacade = null;
 		ArrayList<Customer> customerList = null;
 		GenericEntity<ArrayList<Customer>> genericEntity = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		try {			
@@ -376,27 +380,29 @@ public class AdminResource {
 			}
 			genericEntity = new GenericEntity<ArrayList<Customer>>(customerList) {};
 			return Response.status(200).entity(genericEntity).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage(); 
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
 		}
-
 	}
+	
 	@GET
 	@Path("/getAllCoupon")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getAllCoupon(){
+	public Response getAllCoupon(@HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeaderToken){
 		String feedback="";
 		AdminFacade adminFacade = null;
 		ArrayList<Coupon> couponList = null;
 		GenericEntity<ArrayList<Coupon>> genericEntity = null;
+		FacadeManager facadeManager = FacadeManager.getInstance();
 		
-		try {
-			adminFacade = (AdminFacade) CouponSystemInst.couponSystem.login("admin", "1234", ClientType.valueOf("ADMIN"));		
-		} catch (CustomSqlSyntaxException e) {
-			System.out.println(e.getMessage());
-		} catch (LoginFailedException e) {
-			System.out.println(e.getMessage());
+		adminFacade = (AdminFacade) facadeManager.getFacade(authorizationHeaderToken);
+		if (adminFacade == null){
+			return Response.status(Response.Status.UNAUTHORIZED).build();
 		}
 		
 		try {			
@@ -406,10 +412,13 @@ public class AdminResource {
 			}
 			genericEntity = new GenericEntity<ArrayList<Coupon>>(couponList) {};
 			return Response.status(200).entity(genericEntity).build();
-		} catch (CustomSqlSyntaxException e) {
-			feedback = e.getMessage();
+		} catch (Exception e) {
+			if (e instanceof CustomSqlSyntaxException) {
+				feedback = e.getMessage(); 
+			} else {
+				feedback = e.getMessage();
+			}
 			return Response.status(500).entity(feedback).build();
-		}
-		
+		}		
 	}
 }

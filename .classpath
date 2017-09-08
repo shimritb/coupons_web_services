@@ -6,11 +6,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
 		<attributes>
 			<attribute name="optional" value="true"/>
@@ -28,6 +23,6 @@
 			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/shimrit/workspace/coupon_web/src/main/webapp/WEB-INF/lib/coupon_core.jar"/>
+	<classpathentry kind="lib" path="/home/zi/Documents/coupon_ws/CouponManagmentProjectWebService/src/main/webapp/WEB-INF/lib/coupons_core.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

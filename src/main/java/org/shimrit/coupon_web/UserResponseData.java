@@ -40,9 +40,5 @@ public class UserResponseData {
 	}
 	public void setToken(String token) {
 		this.token = token;
-	}
-	
-
-	
-	
+	}	
 }
